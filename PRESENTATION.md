@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | **Public demo (Mina's side)** | https://mina-minks-demo-web-1xa7.onrender.com | Live |
 | Backend health check | https://mina-minks-demo-api-1xa7.onrender.com/api/health | Live (`{"status":"ok"}`) |
-| Private source repository | https://github.com/ChrisTechzard/mina-minks-demo | Private |
+| Source repository | https://github.com/ChrisTechzard/mina-minks-demo | Public |
 | Staff sign-in (admin dashboard) | https://mina-minks-demo-web-1xa7.onrender.com/admin | Live — password required |
-| GitHub Pages fallback | https://chrisTechzard.github.io/mina-minks-demo/ | Pending activation (returns 404 until enabled) |
+| GitHub Pages fallback | https://christechzard.github.io/mina-minks-demo/ | Live (static fallback) |
 
 The demo site is **independent** of the live business website. Nothing on
 `minaminks.com`, its domain, hosting, private admin, production database or APIs was
@@ -67,9 +67,10 @@ or "Booking not submitted". The app never invents a successful booking.
 
 Render free web services spin down after ~15 minutes idle, so the first request can
 take about a minute. Free Render Postgres expires 30 days after creation. The GitHub
-Pages fallback is a static presentation only and still needs activation; on a free
-personal GitHub account it requires making the repository public, while Pro/Team can
-keep it private.
+Pages fallback is a static presentation only; because a free personal GitHub account
+only offers Pages for public repositories, the source repository is public. The
+Pages build still reads from the same demo API and shows explicit errors if it is
+unavailable.
 
 ## Explanation you can use
 

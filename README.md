@@ -210,29 +210,27 @@ This is a hackathon prototype, **not** a production booking system:
 ## GitHub Pages fallback (static presentation)
 
 `.github/workflows/deploy-pages.yml` builds the frontend for a project Pages site at
-`/mina-minks-demo/` and publishes `frontend/dist`. The Render blueprint is untouched.
+`/mina-minks-demo/` and publishes `frontend/dist`. It is a static fallback only;
+the primary deployment remains the Render static site and is unchanged.
 
-Before enabling it, note the account requirement: **GitHub Pages for a private
-repository requires GitHub Pro/Team (or higher). On a free personal account, Pages
-is only available for public repositories.** The repository is currently private
-and has deliberately **not** been made public. No visibility change is made by
-the workflow.
+Public URL (verified live):
+**https://christechzard.github.io/mina-minks-demo/**
 
-Expected public URL once activated:
-**https://chrisTechzard.github.io/mina-minks-demo/**
-
-Activation steps (owner action):
-
-1. If on a free plan, set the repository to **Public** yourself; if on Pro/Team,
-   keep it private.
-2. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. Run **Actions → Deploy frontend to GitHub Pages → Run workflow**.
+Pages was enabled with **Source: GitHub Actions**, and the repository was made
+**public** because GitHub Pages on a free personal account requires a public
+repository (Pro/Team can keep it private). Direct links are handled by a copied
+`404.html`.
 
 The static build talks to the live demo API at
-`https://mina-minks-demo-api-1xa7.onrender.com`. If that service is asleep or
-unavailable, the UI shows explicit "Menu unavailable" / "Booking not submitted"
-errors. It never fabricates a confirmation: the confirmation screen only renders
-data returned by a real successful API response.
+`https://mina-minks-demo-api-1xa7.onrender.com`. Because the browser origin is
+`https://christechzard.github.io`, that origin is included in the API's
+`FRONTEND_ORIGIN` list in `render.yaml` so CORS permits the read-only calls. If the
+API is asleep or unavailable, the UI shows explicit "Menu unavailable" /
+"Booking not submitted" errors. It never fabricates a confirmation: the
+confirmation screen only renders data returned by a real successful API response.
+
+To republish: **Actions → Deploy frontend to GitHub Pages → Run workflow**. No
+secrets are used in the workflow.
 
 ---
 
