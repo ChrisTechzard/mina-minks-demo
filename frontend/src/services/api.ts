@@ -71,6 +71,30 @@ interface RequestOptions extends RequestInit {
   token?: string;
 }
 
+// Render's free services can briefly be unavailable while waking or redeploying.
+// Only read-only requests are retried: replaying a booking write could duplicate it.
+const RETRY_DELAY_MS = 1500;
+
+function isReadOnly(method: string | undefined): boolean {
+  const normalized = (method ?? 'GET').toUpperCase();
+  return normalized === 'GET' || normalized === 'HEAD';
+}
+
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(url, init);
+      if (response.status < 500 || attempt === 1) return response;
+    } catch (caught: unknown) {
+      lastError = caught;
+      if (attempt === 1) throw caught;
+    }
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+  }
+  throw lastError ?? new Error('The request could not be completed.');
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { token, ...init } = options;
   const headers: Record<string, string> = { ...(init.headers as Record<string, string> | undefined) };
@@ -79,9 +103,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+    response = await (isReadOnly(init.method)
+      ? fetchWithRetry(`${API_BASE}${path}`, { ...init, headers })
+      : fetch(`${API_BASE}${path}`, { ...init, headers }));
   } catch {
-    throw new ApiError('Cannot reach the booking server. Please check your connection.', 0, 'network_error');
+    throw new ApiError(
+      'Cannot reach the booking server — it may still be waking up. Please try again in a moment.',
+      0,
+      'network_error',
+    );
   }
 
   const text = await response.text();
