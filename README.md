@@ -205,6 +205,35 @@ This is a hackathon prototype, **not** a production booking system:
 
 ---
 
+## GitHub Pages fallback (static presentation)
+
+`.github/workflows/deploy-pages.yml` builds the frontend for a project Pages site at
+`/mina-minks-demo/` and publishes `frontend/dist`. The Render blueprint is untouched.
+
+Before enabling it, note the account requirement: **GitHub Pages for a private
+repository requires GitHub Pro/Team (or higher). On a free personal account, Pages
+is only available for public repositories.** The repository is currently private
+and has deliberately **not** been made public. No visibility change is made by
+the workflow.
+
+Expected public URL once activated:
+**https://chrisTechzard.github.io/mina-minks-demo/**
+
+Activation steps (owner action):
+
+1. If on a free plan, set the repository to **Public** yourself; if on Pro/Team,
+   keep it private.
+2. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. Run **Actions → Deploy frontend to GitHub Pages → Run workflow**.
+
+The static build talks to the live demo API at
+`https://mina-minks-demo-api-1xa7.onrender.com`. If that service is asleep or
+unavailable, the UI shows explicit "Menu unavailable" / "Booking not submitted"
+errors. It never fabricates a confirmation: the confirmation screen only renders
+data returned by a real successful API response.
+
+---
+
 ## Repository layout
 
 ```

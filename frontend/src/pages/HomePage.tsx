@@ -98,7 +98,7 @@ export default function HomePage() {
           <div className="relative animate-fade-up [animation-delay:100ms]">
             <figure className="aspect-[4/5] overflow-hidden rounded-5xl border border-champagne/60 bg-sand/30">
               <ImageWithFallback
-                src="/mina-studio.jpg"
+                src={`${import.meta.env.BASE_URL}mina-studio.jpg`}
                 alt="Studio photograph supplied with the Mina Minks demo brief"
                 className="h-full w-full"
                 eager

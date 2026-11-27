@@ -14,7 +14,7 @@ export default function ImageWithFallback({ src, alt, className = '', eager = fa
     setFailed(false);
   }, [src]);
 
-  const source = src && !failed ? src : '/lash-fallback.svg';
+  const source = src && !failed ? src : `${import.meta.env.BASE_URL}lash-fallback.svg`;
   return (
     <img
       src={source}
