@@ -7,6 +7,7 @@
 | **Public demo (Mina's side)** | https://mina-minks-demo-web-1xa7.onrender.com | Live |
 | Backend health check | https://mina-minks-demo-api-1xa7.onrender.com/api/health | Live (`{"status":"ok"}`) |
 | Private source repository | https://github.com/ChrisTechzard/mina-minks-demo | Private |
+| Staff sign-in (admin dashboard) | https://mina-minks-demo-web-1xa7.onrender.com/admin | Live — password required |
 | GitHub Pages fallback | https://chrisTechzard.github.io/mina-minks-demo/ | Pending activation (returns 404 until enabled) |
 
 The demo site is **independent** of the live business website. Nothing on
