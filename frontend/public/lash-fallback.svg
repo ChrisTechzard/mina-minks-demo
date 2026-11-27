@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Abstract lash illustration placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#E7DFD2"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <circle cx="400" cy="270" r="180" fill="#B7A99A" opacity="0.22"/>
+  <path d="M250 360 C300 250 500 250 550 360" fill="none" stroke="#111111" stroke-width="8" stroke-linecap="round"/>
+  <g stroke="#111111" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M285 340 Q270 290 245 265"/>
+    <path d="M315 310 Q305 255 285 225"/>
+    <path d="M350 292 Q345 235 330 205"/>
+    <path d="M390 285 Q390 230 385 198"/>
+    <path d="M430 292 Q438 238 450 208"/>
+    <path d="M468 310 Q482 258 505 230"/>
+    <path d="M500 340 Q520 294 550 270"/>
+  </g>
+  <text x="400" y="500" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="#111111" letter-spacing="6">MINA MINKS</text>
+  <text x="400" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111111" opacity="0.6" letter-spacing="3">SAMPLE LASH IMAGERY</text>
+</svg>
