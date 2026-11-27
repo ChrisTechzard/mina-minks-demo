@@ -10,7 +10,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.config import settings
+from app.core.config import normalize_database_url, settings
 
 
 class Base(DeclarativeBase):
@@ -18,21 +18,24 @@ class Base(DeclarativeBase):
 
 
 def _make_engine() -> Engine:
-    """Use SQLite locally and a plain SQLAlchemy URL for hosted PostgreSQL."""
+    """Use SQLite locally and psycopg 3 for hosted PostgreSQL."""
 
-    if not settings.database_url.startswith("sqlite:"):
-        return create_engine(settings.database_url, pool_pre_ping=True)
+    # Apply the normalisation here too, so engine creation never depends on the
+    # settings validator having run (e.g. when a URL is supplied programmatically).
+    database_url = normalize_database_url(settings.database_url)
+    if not database_url.startswith("sqlite:"):
+        return create_engine(database_url, pool_pre_ping=True)
 
-    is_memory = settings.database_url.endswith(":memory:")
+    is_memory = database_url.endswith(":memory:")
     connect_args: dict[str, Any] = {"check_same_thread": False}
     if is_memory:
         return create_engine(
-            settings.database_url,
+            database_url,
             connect_args=connect_args,
             poolclass=StaticPool,
         )
     connect_args["timeout"] = 30
-    return create_engine(settings.database_url, connect_args=connect_args)
+    return create_engine(database_url, connect_args=connect_args)
 
 
 engine = _make_engine()

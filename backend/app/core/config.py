@@ -8,6 +8,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 
+# Provider connection strings are often bare ``postgresql://``. SQLAlchemy maps
+# that scheme to psycopg2, which is not installed; pin them to psycopg 3.
+_BARE_POSTGRES_SCHEMES = ("postgres://", "postgresql://")
+
+
+def normalize_database_url(value: object) -> object:
+    """Map legacy/bare PostgreSQL URLs onto the installed psycopg 3 driver."""
+
+    if isinstance(value, str):
+        for scheme in _BARE_POSTGRES_SCHEMES:
+            if value.startswith(scheme):
+                return f"postgresql+psycopg://{value[len(scheme):]}"
+    return value
+
 
 class Settings(BaseSettings):
     """All deployment-specific values live here; no secrets are committed."""
@@ -34,12 +48,10 @@ class Settings(BaseSettings):
 
     @field_validator("database_url", mode="before")
     @classmethod
-    def normalize_database_url(cls, value: object) -> object:
-        """Accept provider URLs that still use the legacy ``postgres://`` scheme."""
+    def _normalize_database_url(cls, value: object) -> object:
+        """Accept provider URLs that use a bare or legacy PostgreSQL scheme."""
 
-        if isinstance(value, str) and value.startswith("postgres://"):
-            return f"postgresql+psycopg://{value[len('postgres://'):]}"
-        return value
+        return normalize_database_url(value)
 
 
 @lru_cache(maxsize=1)
