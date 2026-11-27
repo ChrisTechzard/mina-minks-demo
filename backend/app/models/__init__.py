@@ -13,7 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    text,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -88,7 +88,7 @@ class Booking(Base):
     price_ghs: Mapped[float | None] = mapped_column(nullable=True)
     duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     snapshot_backfilled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default=text("0")
+        Boolean, nullable=False, default=False, server_default=false()
     )
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
