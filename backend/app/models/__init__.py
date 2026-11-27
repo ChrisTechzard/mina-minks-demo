@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     ForeignKey,
     Index,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -78,6 +80,17 @@ class Booking(Base):
     end_at: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="pending", nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Commercial details captured at booking time. Nullable so existing rows can
+    # be migrated additively; snapshot_backfilled marks inferred legacy values.
+    service_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    service_category: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    price_ghs: Mapped[float | None] = mapped_column(nullable=True)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    snapshot_backfilled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("0")
+    )
+
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now(), nullable=False

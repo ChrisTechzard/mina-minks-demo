@@ -111,7 +111,8 @@ def seed_if_empty(db: Session) -> None:
     if booking_count == 0:
         demo_day = (utc_now() + timedelta(days=1)).date()
         start = local_datetime(demo_day, "10:00")
-        duration = 120
+        demo_service = db.scalar(select(Service).where(Service.id == 1))
+        duration = demo_service.duration_minutes if demo_service is not None else 120
         client = Client(
             full_name="Demo Client",
             email="demo.client@example.com",
@@ -128,6 +129,11 @@ def seed_if_empty(db: Session) -> None:
                 end_at=add_minutes(start, duration).isoformat(),
                 status="confirmed",
                 notes="Seeded demonstration appointment - not a real booking.",
+                service_name=demo_service.name if demo_service is not None else "Classic Lash Extensions",
+                service_category=demo_service.category if demo_service is not None else "Full set",
+                price_ghs=demo_service.price_ghs if demo_service is not None else 320.0,
+                duration_minutes=duration,
+                snapshot_backfilled=False,
             )
         )
 

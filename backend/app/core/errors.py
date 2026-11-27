@@ -21,7 +21,13 @@ class NotFoundError(AppError):
     code = "not_found"
 
 
-class ValidationError(AppError):
+class ValidationError(AppError, ValueError):
+    """Expected validation failure.
+
+    Also a ValueError so Pydantic validators can raise it and FastAPI converts
+    it into a 422 RequestValidationError instead of a 500 internal error.
+    """
+
     status_code = 422
     code = "validation_error"
 

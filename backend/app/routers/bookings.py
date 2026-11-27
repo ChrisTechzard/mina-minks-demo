@@ -62,9 +62,14 @@ def lookup(
         status=booking.status,
         start_at=booking.start_at,
         end_at=booking.end_at,
-        service_name=booking.service.name,
-        duration_minutes=booking.service.duration_minutes,
+        service_name=booking.service_name or booking.service.name,
+        duration_minutes=(
+            booking.duration_minutes
+            if booking.duration_minutes is not None
+            else booking.service.duration_minutes
+        ),
         client_name=client.full_name,
         client_email_masked=mask_email(client.email),
         client_phone_masked=mask_phone(client.phone),
+        snapshot_backfilled=bool(booking.snapshot_backfilled),
     )

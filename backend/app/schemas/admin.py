@@ -56,6 +56,7 @@ class AdminBookingOut(BaseModel):
     service_name: str
     price_ghs: float
     duration_minutes: int
+    snapshot_backfilled: bool = False
 
     @classmethod
     def from_booking(cls, booking: object) -> "AdminBookingOut":
@@ -73,9 +74,18 @@ class AdminBookingOut(BaseModel):
             client_email=booking.client.email,  # type: ignore[attr-defined]
             client_phone=booking.client.phone,  # type: ignore[attr-defined]
             service_id=booking.service_id,  # type: ignore[attr-defined]
-            service_name=booking.service.name,  # type: ignore[attr-defined]
-            price_ghs=booking.service.price_ghs,  # type: ignore[attr-defined]
-            duration_minutes=booking.service.duration_minutes,  # type: ignore[attr-defined]
+            service_name=booking.service_name or booking.service.name,  # type: ignore[attr-defined]
+            price_ghs=(
+                booking.price_ghs
+                if booking.price_ghs is not None
+                else booking.service.price_ghs  # type: ignore[attr-defined]
+            ),
+            duration_minutes=(
+                booking.duration_minutes
+                if booking.duration_minutes is not None
+                else booking.service.duration_minutes  # type: ignore[attr-defined]
+            ),
+            snapshot_backfilled=bool(booking.snapshot_backfilled),  # type: ignore[attr-defined]
         )
 
 

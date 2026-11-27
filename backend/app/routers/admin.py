@@ -142,12 +142,9 @@ def patch_booking(
     booking_id: int,
     payload: AdminBookingUpdate,
     session: AdminDependency,
-    db: Session = Depends(get_db),
 ) -> AdminBookingOut:
-    booking = get_booking(db, booking_id)
     updated = update_booking(
-        db,
-        booking,
+        booking_id,
         status=payload.status,
         start_at=payload.start_at,
         notes=payload.notes,
@@ -159,10 +156,8 @@ def patch_booking(
 def cancel_booking(
     booking_id: int,
     session: AdminDependency,
-    db: Session = Depends(get_db),
 ) -> AdminBookingOut:
-    booking = get_booking(db, booking_id)
-    updated = update_booking(db, booking, status="cancelled", start_at=None, notes=None)
+    updated = update_booking(booking_id, status="cancelled", start_at=None, notes=None)
     return AdminBookingOut.from_booking(updated)
 
 

@@ -66,6 +66,10 @@ def init_db() -> None:
     from app.models import AdminUser
 
     Base.metadata.create_all(bind=engine)
+    # Additive, idempotent schema evolution for existing local databases.
+    from app.migrations import ensure_booking_snapshots
+
+    ensure_booking_snapshots(engine)
     with SessionLocal() as db:
         admin = db.query(AdminUser).filter(AdminUser.email == settings.admin_email.lower()).first()
         if admin is None:

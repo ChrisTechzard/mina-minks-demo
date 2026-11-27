@@ -22,6 +22,7 @@ import type { BookingCreatePayload } from '../types';
 const STEPS = ['Service', 'Date', 'Time', 'Details', 'Review'];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[0-9()\s-]{7,20}$/;
+const MIN_PHONE_DIGITS = 7;
 
 interface DetailsForm {
   full_name: string;
@@ -36,7 +37,11 @@ function validateDetails(form: DetailsForm): FormErrors {
   const errors: FormErrors = {};
   if (form.full_name.trim().length < 2) errors.full_name = 'Please enter your full name.';
   if (!EMAIL_PATTERN.test(form.email.trim())) errors.email = 'Enter a valid email address.';
-  if (!PHONE_PATTERN.test(form.phone.trim())) errors.phone = 'Enter a valid phone number.';
+  const phone = form.phone.trim();
+  const phoneDigits = phone.replace(/\D/g, '').length;
+  if (!PHONE_PATTERN.test(phone) || phoneDigits < MIN_PHONE_DIGITS) {
+    errors.phone = 'Enter a valid phone number with at least 7 digits.';
+  }
   return errors;
 }
 

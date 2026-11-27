@@ -57,22 +57,30 @@ def _find_or_create_client(db: Session, payload: BookingCreate) -> Client:
     return client
 
 
-def booking_to_out(booking: Booking, service_name: str, category: str, duration: int,
-                   price: float, client: Client) -> BookingOut:
-    """Build the public confirmation DTO with masked client contact details."""
+def booking_to_out(booking: Booking, client: Client) -> BookingOut:
+    """Build the confirmation DTO from booking-time snapshots, not live prices."""
 
     return BookingOut(
         reference=booking.reference,
         status=booking.status,
         start_at=booking.start_at,
         end_at=booking.end_at,
-        service_name=service_name,
-        service_category=category,
-        service_duration_minutes=duration,
-        price_ghs=price,
+        service_name=booking.service_name or booking.service.name,
+        service_category=booking.service_category or booking.service.category,
+        service_duration_minutes=(
+            booking.duration_minutes
+            if booking.duration_minutes is not None
+            else booking.service.duration_minutes
+        ),
+        price_ghs=(
+            booking.price_ghs
+            if booking.price_ghs is not None
+            else booking.service.price_ghs
+        ),
         client_name=client.full_name,
         client_email_masked=mask_email(client.email),
         client_phone_masked=mask_phone(client.phone),
+        snapshot_backfilled=bool(booking.snapshot_backfilled),
     )
 
 
@@ -110,6 +118,11 @@ def create_booking(db: Session, payload: BookingCreate) -> BookingOut:
                 end_at=end.isoformat(),
                 status="pending",
                 notes=payload.notes,
+                service_name=service.name,
+                service_category=service.category,
+                price_ghs=service.price_ghs,
+                duration_minutes=service.duration_minutes,
+                snapshot_backfilled=False,
             )
             db.add(booking)
             try:
@@ -119,14 +132,7 @@ def create_booking(db: Session, payload: BookingCreate) -> BookingOut:
                 raise BookingConflictError(
                     "That slot could not be reserved. Please refresh and try again."
                 ) from exc
-            return booking_to_out(
-                booking,
-                service.name,
-                service.category,
-                service.duration_minutes,
-                service.price_ghs,
-                client,
-            )
+            return booking_to_out(booking, client)
         except Exception:
             if db.in_transaction():
                 db.rollback()

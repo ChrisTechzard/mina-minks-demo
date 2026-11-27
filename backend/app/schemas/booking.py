@@ -59,6 +59,9 @@ class BookingCreate(BaseModel):
         cleaned = value.strip()
         if not _PHONE_PATTERN.match(cleaned):
             raise ValidationError("Please enter a valid phone number.")
+        digit_count = sum(character.isdigit() for character in cleaned)
+        if digit_count < 7:
+            raise ValidationError("Please enter a phone number with at least 7 digits.")
         return cleaned
 
 
@@ -76,6 +79,7 @@ class BookingOut(BaseModel):
     client_name: str
     client_email_masked: str
     client_phone_masked: str
+    snapshot_backfilled: bool = False
     message: str = "Demo booking created. No payment has been taken."
 
 
@@ -108,6 +112,7 @@ class LookupOut(BaseModel):
     client_name: str
     client_email_masked: str
     client_phone_masked: str
+    snapshot_backfilled: bool = False
 
 
 def validate_reference(reference: str) -> str:
