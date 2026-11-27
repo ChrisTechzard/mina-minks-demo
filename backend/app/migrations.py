@@ -33,6 +33,14 @@ def _column_definitions(engine: Engine) -> dict[str, str]:
     return _SQLITE_SNAPSHOT_COLUMNS
 
 
+def _boolean_literals(engine: Engine) -> tuple[str, str]:
+    """Return dialect-safe FALSE/TRUE literals for boolean comparisons."""
+
+    if engine.dialect.name == "postgresql":
+        return "FALSE", "TRUE"
+    return "0", "1"
+
+
 def ensure_booking_snapshots(engine: Engine) -> list[str]:
     """Add missing booking snapshot columns and mark inferred legacy values.
 
@@ -44,6 +52,7 @@ def ensure_booking_snapshots(engine: Engine) -> list[str]:
 
     added: list[str] = []
     definitions = _column_definitions(engine)
+    false_value, true_value = _boolean_literals(engine)
     with engine.begin() as connection:
         existing = {
             column["name"] for column in inspect(connection).get_columns("bookings")
@@ -57,7 +66,7 @@ def ensure_booking_snapshots(engine: Engine) -> list[str]:
 
         needs_backfill = connection.execute(
             text(
-                "SELECT 1 FROM bookings WHERE snapshot_backfilled = 0 "
+                f"SELECT 1 FROM bookings WHERE snapshot_backfilled = {false_value} "
                 "AND (service_name IS NULL OR price_ghs IS NULL "
                 "OR duration_minutes IS NULL) LIMIT 1"
             )
@@ -65,7 +74,7 @@ def ensure_booking_snapshots(engine: Engine) -> list[str]:
         if needs_backfill is not None:
             connection.execute(
                 text(
-                    """
+                    f"""
                     UPDATE bookings
                     SET service_name = (
                             SELECT services.name FROM services
@@ -83,8 +92,8 @@ def ensure_booking_snapshots(engine: Engine) -> list[str]:
                             SELECT services.duration_minutes FROM services
                             WHERE services.id = bookings.service_id
                         ),
-                        snapshot_backfilled = 1
-                    WHERE snapshot_backfilled = 0
+                        snapshot_backfilled = {true_value}
+                    WHERE snapshot_backfilled = {false_value}
                       AND (service_name IS NULL OR price_ghs IS NULL
                            OR duration_minutes IS NULL)
                     """
