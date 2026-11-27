@@ -175,8 +175,10 @@ Steps:
 1. Sign in to Render and authorise it to read the private GitHub repository.
 2. **New → Blueprint → select `mina-minks-demo`**. Render reads `render.yaml`.
 3. When prompted, set `ADMIN_PASSWORD` to a demo-only value. Nothing secret is committed.
-4. Deploy, then verify `https://mina-minks-demo-api.onrender.com/api/health` returns
-   `{"status":"ok",...}` and open `https://mina-minks-demo-web.onrender.com`.
+4. Deploy, then verify `https://mina-minks-demo-api-1xa7.onrender.com/api/health`
+   returns `{"status":"ok",...}` and open
+   `https://mina-minks-demo-web-1xa7.onrender.com`. Render appends a unique suffix
+   to service names, so use the real hostnames shown in its dashboard.
 5. If service names are auto-renamed, update `FRONTEND_ORIGIN` (API) and `VITE_API_URL`
    (frontend build) to the real URLs and redeploy.
 

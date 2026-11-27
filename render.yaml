@@ -27,7 +27,7 @@ services:
           name: mina-minks-demo-db
           property: connectionString
       - key: FRONTEND_ORIGIN
-        value: https://mina-minks-demo-web.onrender.com
+        value: https://mina-minks-demo-web-1xa7.onrender.com
       - key: ADMIN_EMAIL
         value: demo.admin@example.com
       - key: ADMIN_PASSWORD
@@ -42,7 +42,7 @@ services:
       - key: NODE_VERSION
         value: 20
       - key: VITE_API_URL
-        value: https://mina-minks-demo-api.onrender.com
+        value: https://mina-minks-demo-api-1xa7.onrender.com
     routes:
       - type: rewrite
         source: /*
