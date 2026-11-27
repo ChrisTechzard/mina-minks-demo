@@ -1,27 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CalendarClock, LayoutDashboard, LogOut, Settings2 } from 'lucide-react';
 import AdminLogin from '../components/admin/AdminLogin';
 import AdminOverview from '../components/admin/AdminOverview';
 import AdminBookingsPanel from '../components/admin/AdminBookingsPanel';
 import AdminSettingsPanel from '../components/admin/AdminSettingsPanel';
+import BrandMark from '../components/BrandMark';
 import DemoBadge from '../components/DemoBadge';
 import Spinner from '../components/Spinner';
 import { useAdminSession } from '../hooks/useAdminSession';
-import { api } from '../services/api';
+import { ApiError, api } from '../services/api';
 import type { Dashboard } from '../types';
 
 type Tab = 'overview' | 'bookings' | 'settings';
 
 const TABS: Array<{ key: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { key: 'bookings', label: 'Bookings', icon: CalendarClock },
-  { key: 'settings', label: 'Settings', icon: Settings2 },
+  { key: 'bookings', label: 'Appointments', icon: CalendarClock },
+  { key: 'settings', label: 'Studio setup', icon: Settings2 },
 ];
 
 export default function AdminPage() {
-  const { token, identity, verifying, signIn, signOut } = useAdminSession();
-  const [tab, setTab] = useState<Tab>('overview');
+  const { token, identity, verifying, sessionExpired, signIn, signOut, acknowledgeExpiry } = useAdminSession();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const tab: Tab = requestedTab === 'bookings' || requestedTab === 'settings' ? requestedTab : 'overview';
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState<boolean>(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
@@ -33,6 +36,7 @@ export default function AdminPage() {
     try {
       setDashboard(await api.admin.dashboard(token));
     } catch (caught: unknown) {
+      if (caught instanceof ApiError && caught.status === 401) return;
       setDashboardError(caught instanceof Error ? caught.message : 'Unable to load the overview.');
     } finally {
       setDashboardLoading(false);
@@ -43,71 +47,123 @@ export default function AdminPage() {
     if (token) void loadDashboard();
   }, [token, loadDashboard]);
 
+  const selectTab = (next: Tab): void => {
+    setSearchParams(next === 'overview' ? {} : { tab: next });
+  };
+
   if (verifying) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink text-cream">
-        <Spinner label="Verifying admin session…" className="text-cream/60" />
+      <div className="flex min-h-screen items-center justify-center bg-cream">
+        <Spinner label="Verifying admin session…" />
       </div>
     );
   }
 
-  if (!token) return <AdminLogin onSignIn={signIn} />;
+  if (!token) {
+    return (
+      <AdminLogin
+        onSignIn={signIn}
+        sessionExpired={sessionExpired}
+        onAcknowledgeExpiry={acknowledgeExpiry}
+      />
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-ink text-cream">
-      <header className="border-b border-cream/10">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5 lg:px-8">
+    <div className="min-h-screen bg-cream text-ink">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink"
+      >
+        Skip to content
+      </a>
+      <div className="mx-auto flex max-w-[1500px]">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-cream/10 bg-ink p-7 text-cream lg:flex">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-cream/50 text-xs font-bold tracking-widest">MM</span>
+            <BrandMark light compact />
             <div>
-              <p className="font-display text-2xl leading-none">Mina Minks</p>
-              <p className="mt-1 text-[11px] uppercase tracking-editorial text-accent">Admin workspace</p>
+              <p className="font-display text-xl leading-none">Mina Minks</p>
+              <p className="mt-1 text-[10px] uppercase tracking-editorial text-accent">Studio workspace</p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <DemoBadge className="border-cream/20 bg-white/5 text-cream/60" />
-            <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cream/55 hover:text-accent">
-              <ArrowLeft size={14} /> View site
-            </Link>
-            <button type="button" className="btn-outline border-cream/25 px-4 py-2 text-xs text-cream" onClick={() => void signOut()}>
-              <LogOut size={14} /> Sign out
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <div className="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-cream/10 pb-6">
-          <div>
-            <h1 className="text-4xl sm:text-5xl">Studio dashboard.</h1>
-            <p className="mt-2 text-sm text-cream/50">
-              Signed in as {identity?.email ?? 'admin'} · prototype session
-            </p>
-          </div>
-          <nav className="flex flex-wrap gap-2" aria-label="Admin sections">
+          <nav className="mt-12 space-y-2" aria-label="Admin sections">
             {TABS.map((item) => (
               <button
                 key={item.key}
                 type="button"
-                onClick={() => setTab(item.key)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition ${
-                  tab === item.key ? 'bg-accent text-ink' : 'border border-cream/20 text-cream/60 hover:border-accent hover:text-accent'
+                aria-current={tab === item.key ? 'page' : undefined}
+                onClick={() => selectTab(item.key)}
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition duration-200 ${
+                  tab === item.key ? 'bg-accent text-ink' : 'text-cream/60 hover:bg-cream/5 hover:text-cream'
                 }`}
               >
-                <item.icon size={14} /> {item.label}
+                <item.icon size={17} aria-hidden="true" />
+                {item.label}
               </button>
             ))}
           </nav>
-        </div>
 
-        <div className="pt-8">
-          {tab === 'overview' ? (
-            <AdminOverview data={dashboard} loading={dashboardLoading} error={dashboardError} onRefresh={() => void loadDashboard()} />
-          ) : null}
-          {tab === 'bookings' && token ? (
-            <AdminBookingsPanel token={token} onChanged={() => void loadDashboard()} />
-          ) : null}
-          {tab === 'settings' && token ? <AdminSettingsPanel token={token} /> : null}
+          <div className="mt-auto space-y-5">
+            <DemoBadge className="border-cream/20 bg-cream/5 text-cream/60" />
+            <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cream/60 transition hover:text-accent">
+              <ArrowLeft size={14} aria-hidden="true" /> View public site
+            </Link>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <header className="border-b border-ink/10 bg-ivory/70">
+            <div className="px-5 py-6 sm:px-8 lg:px-10">
+              <div className="flex flex-wrap items-start justify-between gap-5">
+                <div>
+                  <div className="mb-3 flex items-center gap-3 lg:hidden">
+                    <BrandMark compact />
+                    <span className="font-display text-lg">Mina Minks</span>
+                  </div>
+                  <p className="eyebrow mb-2">Studio workspace</p>
+                  <h1 className="text-4xl leading-tight sm:text-5xl">Dashboard.</h1>
+                  <p className="mt-2 text-sm text-ink-muted">
+                    Signed in as {identity?.email ?? 'admin'} · prototype session
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link to="/" className="btn-outline hidden px-4 py-2.5 text-xs sm:inline-flex">
+                    <ArrowLeft size={14} aria-hidden="true" /> View site
+                  </Link>
+                  <button type="button" className="btn-outline px-4 py-2.5 text-xs" onClick={() => void signOut()}>
+                    <LogOut size={14} aria-hidden="true" /> Sign out
+                  </button>
+                </div>
+              </div>
+
+              <nav className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 lg:hidden" aria-label="Admin sections">
+                {TABS.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    aria-current={tab === item.key ? 'page' : undefined}
+                    onClick={() => selectTab(item.key)}
+                    className={`inline-flex min-h-[42px] shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition ${
+                      tab === item.key ? 'bg-ink text-cream' : 'border border-ink/15 text-ink-muted'
+                    }`}
+                  >
+                    <item.icon size={14} aria-hidden="true" /> {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </header>
+
+          <main id="main-content" className="px-5 py-8 sm:px-8 lg:px-10 lg:py-10" tabIndex={-1}>
+            {tab === 'overview' ? (
+              <AdminOverview data={dashboard} loading={dashboardLoading} error={dashboardError} onRefresh={() => void loadDashboard()} />
+            ) : null}
+            {tab === 'bookings' && token ? (
+              <AdminBookingsPanel token={token} onChanged={() => void loadDashboard()} />
+            ) : null}
+            {tab === 'settings' && token ? <AdminSettingsPanel token={token} /> : null}
+          </main>
         </div>
       </div>
     </div>

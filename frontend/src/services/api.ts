@@ -58,6 +58,15 @@ export class ApiError extends Error {
   }
 }
 
+type UnauthorizedHandler = () => void;
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+/** Register a single handler for authenticated requests rejected with 401. */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler;
+}
+
 interface RequestOptions extends RequestInit {
   token?: string;
 }
@@ -85,7 +94,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     }
   }
 
-  if (!response.ok) throw ApiError.fromPayload(payload, response.status);
+  if (!response.ok) {
+    const error = ApiError.fromPayload(payload, response.status);
+    if (response.status === 401 && token) unauthorizedHandler?.();
+    throw error;
+  }
   return payload as T;
 }
 

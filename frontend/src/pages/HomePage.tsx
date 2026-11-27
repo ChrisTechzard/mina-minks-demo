@@ -1,84 +1,121 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarCheck2, Heart, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Sparkles } from 'lucide-react';
 import ImageWithFallback from '../components/ImageWithFallback';
 import ServiceCard from '../components/ServiceCard';
 import DemoBadge from '../components/DemoBadge';
 import Alert from '../components/Alert';
 import Spinner from '../components/Spinner';
+import EmptyState from '../components/ui/EmptyState';
+import SectionHeading from '../components/ui/SectionHeading';
 import { useServices } from '../hooks/useServices';
+import { publicBusiness } from '../content/publicInfo';
 
 const GALLERY = [
   {
-    src: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=800&q=80',
+    src: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=900&q=85',
     caption: 'Soft definition',
   },
   {
-    src: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&q=80',
+    src: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=900&q=85',
     caption: 'Everyday elegance',
   },
   {
-    src: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&q=80',
+    src: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=900&q=85',
     caption: 'Statement volume',
   },
 ];
 
+const STEPS = [
+  {
+    number: '01',
+    title: 'Choose your service',
+    body: 'Compare sample styles, durations and prices before you commit to a time.',
+    to: '/services',
+    cta: 'View the menu',
+  },
+  {
+    number: '02',
+    title: 'Pick a live slot',
+    body: 'Availability comes from configured demo hours and is checked again when you confirm.',
+    to: '/book',
+    cta: 'Start booking',
+  },
+  {
+    number: '03',
+    title: 'Keep your reference',
+    body: 'Use your booking reference with your email or phone to find the appointment again.',
+    to: '/lookup',
+    cta: 'Find a booking',
+  },
+];
+
 export default function HomePage() {
-  const { services, loading, error } = useServices();
+  const { services, loading, error, reload } = useServices();
 
   return (
     <div>
-      <section className="relative overflow-hidden border-b border-ink/10">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-24">
-          <div>
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <span className="eyebrow">Lash studio · Accra demo</span>
+      <section className="relative overflow-hidden border-b border-ink/10 bg-cream">
+        <div className="page-shell grid items-center gap-14 py-14 sm:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:py-24">
+          <div className="animate-fade-up">
+            <div className="mb-7 flex flex-wrap items-center gap-3">
+              <span className="eyebrow">Lash atelier · {publicBusiness.location}</span>
               <DemoBadge />
             </div>
-            <h1 className="max-w-2xl text-5xl leading-[0.98] sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-2xl text-[3.25rem] leading-[0.98] sm:text-6xl lg:text-[5.4rem]">
               Lashes that feel like you,
-              <span className="relative ml-2 inline-block">
-                <span className="relative z-10">only softer.</span>
-                <span className="absolute bottom-1 left-0 z-0 h-3 w-full bg-accent/80" />
-              </span>
+              <span className="mt-1 block font-normal italic text-accent-deep">only softer.</span>
             </h1>
-            <p className="mt-7 max-w-xl text-base leading-relaxed text-ink/65 sm:text-lg">
-              Explore sample lash styles, compare demo prices and reserve a time that fits your
-              day. A polished booking experience built for Mina Minks — with sample business
-              details clearly labelled throughout.
+            <p className="mt-6 max-w-xl font-display text-lg italic leading-snug text-ink-soft sm:text-xl">
+              “{publicBusiness.tagline}”
+            </p>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
+              Explore a considered sample menu, compare clear prices and reserve a time that fits
+              your day. Every service, hour and policy used for booking here is demonstration data.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link to="/book" className="btn-accent">
-                Book an appointment <ArrowRight size={16} />
+              <Link to="/book" className="btn-primary">
+                Book an appointment <ArrowRight size={16} aria-hidden="true" />
               </Link>
               <Link to="/services" className="btn-outline">
-                View sample menu
+                View the sample menu
               </Link>
             </div>
-            <div className="mt-12 flex flex-wrap gap-x-10 gap-y-4 border-t border-ink/10 pt-6 text-xs uppercase tracking-wider text-ink/50">
-              <span>6 sample services</span>
-              <span>GHS pricing demo</span>
-              <span>Accra timezone</span>
-              <span>No payment collected</span>
-            </div>
+            <dl className="mt-12 grid max-w-xl grid-cols-2 gap-x-8 gap-y-5 border-t border-ink/10 pt-6 sm:grid-cols-4">
+              {[
+                ['Menu', 'Sample services'],
+                ['Pricing', 'Shown in GHS'],
+                ['Timezone', 'Africa/Accra'],
+                ['Payment', 'Not collected'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[10px] font-semibold uppercase tracking-editorial text-ink-faint">{label}</dt>
+                  <dd className="mt-1 text-xs font-semibold text-ink-soft">{value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          <div className="relative">
-            <div className="aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-ink/10 bg-sand/20">
+          <div className="relative animate-fade-up [animation-delay:100ms]">
+            <figure className="aspect-[4/5] overflow-hidden rounded-5xl border border-champagne/60 bg-sand/30">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1000&q=85"
-                alt="Premium lash styling sample photograph"
+                src="/mina-studio.jpg"
+                alt="Studio photograph supplied with the Mina Minks demo brief"
                 className="h-full w-full"
+                eager
               />
-            </div>
-            <div className="absolute -bottom-6 left-4 right-4 rounded-2xl border border-ink/10 bg-cream/95 p-5 shadow-soft backdrop-blur sm:left-auto sm:right-8 sm:max-w-xs">
-              <div className="flex items-start gap-3">
+            </figure>
+            <p className="mt-3 text-right text-[10px] font-semibold uppercase tracking-editorial text-ink-faint">
+              Provided studio photograph · pending approval
+            </p>
+            <div className="absolute -bottom-6 left-3 right-3 rounded-3xl border border-champagne/60 bg-ivory p-5 shadow-soft sm:left-auto sm:right-6 sm:max-w-xs">
+              <div className="flex items-start gap-4">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent">
-                  <CalendarCheck2 size={18} />
+                  <CalendarDays size={18} aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="font-display text-xl leading-tight">Your next slot is a few clicks away</p>
-                  <p className="mt-1 text-xs leading-relaxed text-ink/55">
-                    Live availability, instant reference and a clear returning-client lookup.
+                  <p className="font-display text-xl leading-tight">A clear path to your slot</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+                    Service, time and cost stay visible at every step of booking.
                   </p>
                 </div>
               </div>
@@ -87,27 +124,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="eyebrow mb-3">The gallery</p>
-            <h2 className="text-4xl sm:text-5xl">A study in softness.</h2>
-          </div>
-          <p className="max-w-sm text-sm text-ink/60">
-            Sample imagery shows the mood of the brand. Final photography should be approved by Mina.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
+      <section className="page-shell section-shell">
+        <SectionHeading
+          eyebrow="The gallery"
+          title="A study in softness."
+          description="Sample imagery sets the mood of the brand. Final photography should be approved by Mina before launch."
+        />
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
           {GALLERY.map((item, index) => (
-            <figure key={item.caption} className={`overflow-hidden rounded-3xl border border-ink/10 ${index === 1 ? 'md:mt-10' : ''}`}>
-              <div className="aspect-[4/5] overflow-hidden bg-sand/20">
+            <figure key={item.caption} className={`group ${index === 1 ? 'md:mt-12' : ''}`}>
+              <div className="aspect-[4/5] overflow-hidden rounded-4xl border border-ink/10 bg-sand/25">
                 <ImageWithFallback
                   src={item.src}
                   alt={`${item.caption} lash gallery sample`}
-                  className="h-full w-full transition duration-700 hover:scale-105"
+                  className="h-full w-full transition duration-700 group-hover:scale-[1.04]"
                 />
               </div>
-              <figcaption className="flex items-center justify-between px-5 py-4 text-xs uppercase tracking-wider text-ink/60">
+              <figcaption className="mt-4 flex items-center justify-between text-[11px] font-semibold uppercase tracking-editorial text-ink-muted">
                 {item.caption} <span>0{index + 1}</span>
               </figcaption>
             </figure>
@@ -115,78 +148,147 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-ink/10 bg-white/50">
-        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
-          <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
-            <div>
-              <p className="eyebrow mb-3">Sample menu</p>
-              <h2 className="text-4xl sm:text-5xl">Choose your lash language.</h2>
+      <section className="border-y border-ink/10 bg-blush/35">
+        <div className="page-shell section-shell">
+          <SectionHeading
+            eyebrow="Sample menu"
+            title="Choose your lash language."
+            description="A small, configurable menu makes it easy to understand what is being booked and what it costs."
+            action={<Link to="/services" className="btn-outline">Compare all services <ArrowUpRight size={15} aria-hidden="true" /></Link>}
+          />
+          {loading ? <Spinner label="Loading sample services…" className="py-14" /> : null}
+          {error ? (
+            <div className="mt-8 max-w-xl space-y-4">
+              <Alert variant="error" title="Services unavailable">{error}</Alert>
+              <button type="button" className="btn-outline" onClick={() => void reload()}>Try again</button>
             </div>
-            <Link to="/services" className="btn-outline">
-              Compare all services <ArrowRight size={16} />
-            </Link>
-          </div>
-          {loading ? <Spinner label="Loading sample services…" className="py-12" /> : null}
-          {error ? <Alert variant="error" title="Services unavailable">{error}</Alert> : null}
-          {!loading && !error ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          ) : null}
+          {!loading && !error && services.length === 0 ? (
+            <EmptyState
+              className="mt-10"
+              title="No sample services yet."
+              description="The menu will appear here once the studio configures its services."
+            />
+          ) : null}
+          {!loading && !error && services.length > 0 ? (
+            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {services.slice(0, 3).map((service) => (
                 <ServiceCard key={service.id} service={service} compact />
               ))}
             </div>
           ) : null}
-          <p className="mt-6 text-xs text-ink/45">
-            Prices and durations shown are demonstration examples, not confirmed business information.
-          </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24">
-        <p className="eyebrow mb-3">Why Mina Minks</p>
-        <h2 className="max-w-2xl text-4xl sm:text-5xl">Considered from first look to aftercare.</h2>
-        <div className="mt-12 grid gap-8 md:grid-cols-3">
-          {[
-            {
-              icon: Sparkles,
-              title: 'Guided choice',
-              body: 'A short, explainable style finder helps first-time clients compare sample options without external AI.',
-            },
-            {
-              icon: ShieldCheck,
-              title: 'Protected booking',
-              body: 'Server-side checks and database locking stop two clients from reserving overlapping appointment times.',
-            },
-            {
-              icon: Heart,
-              title: 'Return made easy',
-              body: 'Booking references, verified lookup and clearly labelled sample aftercare keep the journey connected.',
-            },
-          ].map((item) => (
-            <article key={item.title} className="border-t border-ink pt-6">
-              <item.icon size={24} strokeWidth={1.5} />
-              <h3 className="mt-5 text-2xl">{item.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-ink/60">{item.body}</p>
+      <section className="page-shell section-shell">
+        <SectionHeading
+          eyebrow="The booking journey"
+          title="Three steps, no guesswork."
+          description="The flow is designed to keep the current choice, the price and the next action in view."
+        />
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {STEPS.map((step) => (
+            <article key={step.number} className="border-t border-ink pt-6">
+              <p className="font-mono text-xs text-accent-deep">{step.number}</p>
+              <h3 className="mt-5 text-2xl">{step.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted">{step.body}</p>
+              <Link to={step.to} className="link-arrow mt-6">
+                {step.cta} <ArrowRight size={14} aria-hidden="true" />
+              </Link>
             </article>
           ))}
         </div>
       </section>
 
+      <section className="page-shell pb-16 sm:pb-20">
+        <div className="grid overflow-hidden rounded-5xl border border-ink/10 bg-ivory lg:grid-cols-[1fr_0.85fr]">
+          <div className="p-8 sm:p-12">
+            <p className="eyebrow mb-4">Style finder</p>
+            <h2 className="text-4xl leading-tight sm:text-5xl">Not sure where to begin?</h2>
+            <p className="mt-4 max-w-lg text-sm leading-relaxed text-ink-muted">
+              Answer four quick questions and compare an explainable sample suggestion. You can
+              always override it and continue straight to booking.
+            </p>
+            <Link to="/recommend" className="btn-primary mt-8">
+              Find your style <Sparkles size={16} aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="relative min-h-[280px] bg-sand/25">
+            <ImageWithFallback
+              src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=900&q=85"
+              alt="Calm beauty treatment sample photograph"
+              className="absolute inset-0 h-full w-full"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-champagne/45 bg-blush/25">
+        <div className="page-shell py-14 sm:py-16">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="max-w-2xl">
+              <p className="eyebrow text-accent-deep">Public studio details</p>
+              <h2 className="mt-3 text-3xl leading-tight sm:text-4xl">Find Mina Minks.</h2>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+                Published contact details from minaminks.com. This demo is independent and does not
+                book through the live studio.
+              </p>
+            </div>
+            <a
+              href={publicBusiness.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-outline"
+            >
+              View public site <ArrowUpRight size={15} aria-hidden="true" />
+            </a>
+          </div>
+          <dl className="mt-9 grid gap-x-10 gap-y-5 border-t border-champagne/45 pt-7 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { label: 'Founder', value: publicBusiness.founder, href: '' },
+              { label: 'Studio', value: publicBusiness.location, href: publicBusiness.mapUrl },
+              { label: 'Phone', value: publicBusiness.phoneLabel, href: publicBusiness.phoneHref },
+              { label: 'Email', value: publicBusiness.email, href: `mailto:${publicBusiness.email}` },
+              { label: 'WhatsApp', value: 'Message the studio', href: publicBusiness.whatsappUrl },
+              { label: 'Social', value: '@mina.minkss', href: publicBusiness.instagramUrl },
+              { label: 'Snapchat', value: 'Open Snapchat link', href: publicBusiness.snapchatUrl },
+            ].map((item) => (
+              <div key={item.label}>
+                <dt className="text-[10px] font-semibold uppercase tracking-editorial text-ink-faint">{item.label}</dt>
+                <dd className="mt-1.5 text-sm font-semibold text-ink-soft">
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      target={item.href.startsWith('http') ? '_blank' : undefined}
+                      rel={item.href.startsWith('http') ? 'noreferrer' : undefined}
+                      className="transition hover:text-accent-deep"
+                    >
+                      {item.value}
+                    </a>
+                  ) : (
+                    item.value
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
       <section className="bg-ink text-cream">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-16 lg:flex-row lg:items-center lg:px-8">
+        <div className="page-shell flex flex-wrap items-end justify-between gap-8 py-14 sm:py-16">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-editorial text-accent">Ready when you are</p>
-            <h2 className="mt-3 text-4xl sm:text-5xl">Book the look, keep the calm.</h2>
+            <h2 className="mt-4 text-4xl sm:text-5xl">Book the look, keep the calm.</h2>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-cream/60">
-              Pick a sample service, choose a live slot and receive a booking reference instantly.
+              Choose a sample service, select a live slot and receive a reference on the next screen.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link to="/book" className="btn-accent">
-              Start booking <ArrowRight size={16} />
+              Start booking <ArrowRight size={16} aria-hidden="true" />
             </Link>
-            <Link to="/aftercare" className="inline-flex items-center rounded-full border border-cream/30 px-6 py-3 text-sm font-semibold transition hover:border-accent hover:text-accent">
-              Read sample aftercare
-            </Link>
+            <Link to="/aftercare" className="btn-outline-light">Read sample aftercare</Link>
           </div>
         </div>
       </section>

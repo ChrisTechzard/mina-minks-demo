@@ -18,6 +18,11 @@ class Base(DeclarativeBase):
 
 
 def _make_engine() -> Engine:
+    """Use SQLite locally and a plain SQLAlchemy URL for hosted PostgreSQL."""
+
+    if not settings.database_url.startswith("sqlite:"):
+        return create_engine(settings.database_url, pool_pre_ping=True)
+
     is_memory = settings.database_url.endswith(":memory:")
     connect_args: dict[str, Any] = {"check_same_thread": False}
     if is_memory:
@@ -37,6 +42,8 @@ engine = _make_engine()
 def _configure_sqlite(dbapi_connection: Any, _connection_record: Any) -> None:
     """Enable foreign keys and busy timeouts so concurrent writers wait safely."""
 
+    if engine.dialect.name != "sqlite":
+        return
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("PRAGMA foreign_keys=ON")
@@ -88,10 +95,11 @@ def reset_schema() -> None:
     """Drop and recreate all tables (used only by explicit demo reset commands)."""
 
     Base.metadata.drop_all(bind=engine)
-    with engine.begin() as connection:
-        has_sequence = connection.exec_driver_sql(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'"
-        ).first()
-        if has_sequence is not None:
-            connection.exec_driver_sql("DELETE FROM sqlite_sequence")
+    if engine.dialect.name == "sqlite":
+        with engine.begin() as connection:
+            has_sequence = connection.exec_driver_sql(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'"
+            ).first()
+            if has_sequence is not None:
+                connection.exec_driver_sql("DELETE FROM sqlite_sequence")
     init_db()

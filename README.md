@@ -4,10 +4,12 @@ A competition-ready, end-to-end booking prototype for **Mina Minks**: public las
 discovery, an explainable style finder, a five-step appointment flow, client booking lookup,
 aftercare guidance, and a password-protected studio dashboard.
 
-> ⚠️ **Everything in this repository is SAMPLE / DEMO DATA.** Service names, prices,
-> durations, opening hours, contact details, policies and aftercare copy are illustrative
-> placeholders pending Mina's approval. No payments are collected and no real customer
-> data should be entered.
+> ⚠️ **This is an independent demonstration, not the live Mina Minks website.**
+> Booking services, prices, durations, opening hours, policies and aftercare copy used by
+> the demo are **sample data** pending Mina's approval. Publicly published name, founder,
+> contact details, social links and menu reference are labelled as such. No published
+> price, duration, deposit or cancellation rule is enforced by this demo. No payments are
+> collected and no real customer data should be entered.
 
 ---
 
@@ -32,7 +34,7 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env               # optional; change the admin password!
-python -m app.seed --reset         # seed demo data (safe to re-run)
+python -m app.seed                 # add demo data without removing existing records
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -52,15 +54,32 @@ npm run dev                        # strict port 5174
 
 Open <http://localhost:5174>. (Port 5173 is also an allowed CORS origin if you change the Vite port.)
 
-### 3. Reset the demo
+### 3. Demo data only
 
-```bash
-cd backend && python -m app.seed --reset
-```
+`python -m app.seed` is additive and never removes records. `python -m app.seed --reset`
+is destructive and should only be run against a disposable local demo database — never
+against a database containing business or customer records. The optional browser E2E
+script resets its own temporary database, not `backend/mina_minks.db`.
 
-This restores services, working hours and one sample appointment, and clears bookings,
-admin sessions, blocked dates and service edits. The browser E2E script does this
-automatically before each run.
+---
+
+## Public business reference (verified from minaminks.com)
+
+The following details are displayed in the UI as **published reference information**:
+
+- Business: **Mina Minks** · Lash extensions by **Beryl Addo** · Accra, Ghana.
+- Published tagline: “Elevate your beauty, one lash at a time. Lash extensions by Beryl Addo, tailored to you.”
+- Phone `+233 50 529 8278`, email `minaminks01@gmail.com`.
+- WhatsApp `wa.me/233505298278`, Instagram `@mina.minkss`, Snapchat link and studio map link.
+- Published menu reference: Doll Classic, MM Classic, Wet Set, Hybrid, Volume, Mega Volume,
+  Classic Refill and MM Classic Refill with their published descriptions, prices and
+  duration labels (see `frontend/src/content/publicInfo.ts`).
+
+**Requires Mina's approval before it can be treated as real booking data:** the demo menu
+prices/durations used for booking, working hours, deposits, late-fee/cancellation rules,
+aftercare wording, and the supplied studio photograph. The original photograph at
+`/home/chris_techzard/Pictures/Mina.jpeg` was not modified; an optimised copy is served
+from `frontend/public/mina-studio.jpg` and is labelled “pending approval”.
 
 ---
 
@@ -93,7 +112,7 @@ automatically before each run.
 ## Tests
 
 ```bash
-# Backend: 11 tests incl. double-booking races, auth, lookup and admin rules
+# Backend: 25 tests incl. double-booking races, auth, lookup, snapshots and admin rules
 cd backend && .venv/bin/python -m pytest -q
 
 # Frontend units (formatting, API client, recommendation rules)
@@ -120,7 +139,7 @@ All backend settings are environment variables (see `backend/.env.example`):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | `sqlite:///./mina_minks.db` | SQLite database location |
+| `DATABASE_URL` | `sqlite:///./mina_minks.db` | SQLite locally; hosted PostgreSQL URL in deployment |
 | `FRONTEND_ORIGIN` | `http://localhost:5173,http://localhost:5174` | Comma-separated CORS allow-list |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | `mina@example.com` / `demo-password-change-me` | Dashboard credentials |
 | `ADMIN_SESSION_TTL_MINUTES` | `480` | Bearer-token lifetime |
@@ -135,6 +154,37 @@ Frontend: `VITE_API_URL` (default `http://localhost:8000`).
 Admin passwords are salted with PBKDF2-HMAC-SHA256. Bearer tokens are random, hashed with
 SHA-256 in the database, expire, and can be revoked. The frontend keeps the token in
 `sessionStorage`.
+
+`DATABASE_URL` accepts both `postgresql+psycopg://…` and legacy `postgres://…` provider URLs.
+SQLite remains the local default; PostgreSQL uses the same additive migration path and does
+not receive SQLite-only `PRAGMA` statements.
+
+---
+
+## Deployment (free tiers only)
+
+`render.yaml` defines a free Render stack:
+
+1. **Render Postgres** (`mina-minks-demo-db`, free plan) — injected as `DATABASE_URL`.
+2. **FastAPI web service** (`mina-minks-demo-api`, free plan) — `healthCheckPath: /api/health`.
+3. **Static site** (`mina-minks-demo-web`) — Vite build with `VITE_API_URL` set at build time
+   and an SPA rewrite of `/*` to `/index.html`.
+
+Steps:
+
+1. Sign in to Render and authorise it to read the private GitHub repository.
+2. **New → Blueprint → select `mina-minks-demo`**. Render reads `render.yaml`.
+3. When prompted, set `ADMIN_PASSWORD` to a demo-only value. Nothing secret is committed.
+4. Deploy, then verify `https://mina-minks-demo-api.onrender.com/api/health` returns
+   `{"status":"ok",...}` and open `https://mina-minks-demo-web.onrender.com`.
+5. If service names are auto-renamed, update `FRONTEND_ORIGIN` (API) and `VITE_API_URL`
+   (frontend build) to the real URLs and redeploy.
+
+Free-tier limits to know: Render free web services spin down after 15 minutes idle (first
+request after that takes ~1 minute), and **free Render Postgres expires 30 days after
+creation**. No paid plan, add-on or card is required for this demo. For a longer-lived
+demo, create a free Neon Postgres project and replace `DATABASE_URL` with its connection
+string; do not upgrade either provider to a paid plan.
 
 ---
 
@@ -176,7 +226,9 @@ frontend/
     components/        Layout, shared UI, admin panels
     services/api.ts    Typed API client
     services/format.ts Accra timezone formatting helpers
+    content/publicInfo.ts  Verified public reference data
     scripts/           browser-smoke.mjs (Playwright via Chrome)
+render.yaml                Free Render blueprint (web, API, Postgres)
 ```
 
 No secrets or production customer data are committed. `.venv/`, `node_modules/`,

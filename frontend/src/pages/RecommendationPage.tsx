@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, RotateCcw, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, RotateCcw, Sparkles } from 'lucide-react';
 import Alert from '../components/Alert';
 import Spinner from '../components/Spinner';
 import DemoBadge from '../components/DemoBadge';
+import ImageWithFallback from '../components/ImageWithFallback';
+import EmptyState from '../components/ui/EmptyState';
+import PageIntro from '../components/ui/PageIntro';
 import { useServices } from '../hooks/useServices';
 import { recommend } from '../services/recommendation';
 import type { FinishAnswer, LookAnswer, RecommendationAnswers, VisitAnswer } from '../services/recommendation';
@@ -12,10 +15,10 @@ import { formatDuration, formatPrice } from '../services/format';
 type AnswerKey = keyof RecommendationAnswers;
 
 const QUESTIONS: Array<{ key: AnswerKey; question: string; hint: string }> = [
-  { key: 'look', question: 'What look do you prefer?', hint: 'Choose the mood that feels most like you.' },
-  { key: 'firstVisit', question: 'Is this your first lash appointment?', hint: 'We tailor the sample suggestion either way.' },
-  { key: 'finish', question: 'Natural or dramatic?', hint: 'Think about your everyday finish.' },
-  { key: 'visit', question: 'Full set or maintenance?', hint: 'Not sure yet? That is a valid answer.' },
+  { key: 'look', question: 'What look feels most like you?', hint: 'Choose the mood you would enjoy wearing every day.' },
+  { key: 'firstVisit', question: 'Is this your first lash appointment?', hint: 'Your answer changes the sample starting point.' },
+  { key: 'finish', question: 'Natural or dramatic?', hint: 'Think about the finish you want most often.' },
+  { key: 'visit', question: 'Full set or maintenance?', hint: 'Not sure yet? That is a useful answer too.' },
 ];
 
 function isComplete(value: Partial<RecommendationAnswers>): value is RecommendationAnswers {
@@ -27,36 +30,53 @@ function isComplete(value: Partial<RecommendationAnswers>): value is Recommendat
   );
 }
 
-function OptionButton({ label, hint, selected, onClick }: {
+interface OptionButtonProps {
   label: string;
-  hint?: string;
+  hint: string;
   selected: boolean;
   onClick: () => void;
-}) {
+}
+
+function OptionButton({ label, hint, selected, onClick }: OptionButtonProps) {
   return (
     <button
       type="button"
+      aria-pressed={selected}
       onClick={onClick}
-      className={`w-full rounded-2xl border px-5 py-4 text-left transition ${
-        selected ? 'border-ink bg-accent/25' : 'border-ink/15 bg-white/60 hover:border-ink/50'
+      className={`flex min-h-[72px] w-full items-center justify-between gap-4 rounded-3xl border px-5 py-4 text-left transition duration-200 ${
+        selected
+          ? 'border-ink bg-accent/35 shadow-lift'
+          : 'border-ink/12 bg-ivory hover:border-ink/45 hover:bg-white'
       }`}
     >
-      <span className="flex items-center justify-between gap-3">
-        <span className="font-semibold">{label}</span>
-        <span className={`grid h-5 w-5 place-items-center rounded-full border ${selected ? 'border-ink bg-ink text-accent' : 'border-ink/25'}`}>
-          {selected ? '✓' : ''}
-        </span>
+      <span>
+        <span className="block font-semibold text-ink">{label}</span>
+        <span className="mt-1 block text-xs leading-relaxed text-ink-muted">{hint}</span>
       </span>
-      {hint ? <span className="mt-1 block text-xs text-ink/55">{hint}</span> : null}
+      <span
+        aria-hidden="true"
+        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-ink transition ${
+          selected ? 'border-ink bg-ink text-accent' : 'border-ink/25'
+        }`}
+      >
+        {selected ? <Check size={14} /> : null}
+      </span>
     </button>
   );
 }
 
 export default function RecommendationPage() {
-  const { services, loading, error } = useServices();
+  const { services, loading, error, reload } = useServices();
   const [step, setStep] = useState<number>(0);
   const [answers, setAnswers] = useState<Partial<RecommendationAnswers>>({});
   const [overrideId, setOverrideId] = useState<number | null>(null);
+  const overrideRef = useRef<HTMLSelectElement>(null);
+  const stageRef = useRef<HTMLHeadingElement>(null);
+  const resultPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    stageRef.current?.focus({ preventScroll: true });
+  }, [step]);
 
   function choose<K extends AnswerKey>(key: K, value: RecommendationAnswers[K]): void {
     setAnswers((previous: Partial<RecommendationAnswers>) => ({ ...previous, [key]: value }));
@@ -71,7 +91,13 @@ export default function RecommendationPage() {
 
   const selectedService = services.find(
     (service) => service.id === (overrideId ?? result?.serviceId),
-  );
+  ) ?? null;
+
+  useEffect(() => {
+    if (step === QUESTIONS.length && !selectedService && !loading) {
+      resultPanelRef.current?.focus({ preventScroll: true });
+    }
+  }, [step, selectedService, loading]);
 
   const reset = (): void => {
     setAnswers({});
@@ -79,39 +105,46 @@ export default function RecommendationPage() {
     setStep(0);
   };
 
-  return (
-    <div className="mx-auto max-w-6xl px-5 py-14 lg:px-8 lg:py-20">
-      <div className="flex flex-wrap items-end justify-between gap-5">
-        <div>
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <p className="eyebrow">Style finder</p>
-            <DemoBadge />
-          </div>
-          <h1 className="text-5xl leading-tight sm:text-6xl">Find your lash language.</h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink/60">
-            Four quick questions produce an explainable suggestion from the sample menu.
-            It works offline and you can always override it.
-          </p>
-        </div>
-        <Sparkles size={38} strokeWidth={1.2} className="text-ink/30" />
-      </div>
+  const focusOverride = (): void => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    overrideRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+    overrideRef.current?.focus({ preventScroll: true });
+  };
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="card p-6 sm:p-9">
+  return (
+    <div className="page-shell py-14 sm:py-20">
+      <PageIntro
+        eyebrow="Style finder"
+        title="Find your lash language."
+        description="Four short questions produce an explainable suggestion from the sample menu. No external AI is used, and your choice always wins."
+        aside={<DemoBadge />}
+      />
+
+      <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="surface p-6 sm:p-9">
+          <p className="sr-only" role="status">
+            {step < QUESTIONS.length
+              ? `Question ${step + 1} of ${QUESTIONS.length}: ${QUESTIONS[step].question}`
+              : selectedService
+                ? `Suggestion ready: ${selectedService.name}.`
+                : error
+                  ? `Menu unavailable. ${error}`
+                  : 'Suggestion unavailable.'}
+          </p>
           {step < QUESTIONS.length ? (
-            <div>
-              <div className="mb-6 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-editorial text-ink/50">
+            <div className="animate-fade-up" key={QUESTIONS[step].key}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <p className="text-[11px] font-semibold uppercase tracking-editorial text-ink-muted">
                   Question {step + 1} of {QUESTIONS.length}
-                </span>
-                <div className="flex gap-1.5">
+                </p>
+                <div className="flex gap-1.5" aria-hidden="true">
                   {QUESTIONS.map((question, index) => (
-                    <span key={question.key} className={`h-1.5 w-8 rounded-full ${index <= step ? 'bg-accent' : 'bg-ink/10'}`} />
+                    <span key={question.key} className={`h-1.5 w-8 rounded-full transition-colors duration-300 ${index <= step ? 'bg-accent-deep' : 'bg-ink/10'}`} />
                   ))}
                 </div>
               </div>
-              <h2 className="text-3xl sm:text-4xl">{QUESTIONS[step].question}</h2>
-              <p className="mt-2 text-sm text-ink/55">{QUESTIONS[step].hint}</p>
+              <h2 ref={stageRef} tabIndex={-1} className="mt-8 text-3xl leading-tight focus:outline-none sm:text-4xl">{QUESTIONS[step].question}</h2>
+              <p className="mt-2 text-sm text-ink-muted">{QUESTIONS[step].hint}</p>
 
               <div className="mt-7 space-y-3">
                 {step === 0 ? (
@@ -129,7 +162,7 @@ export default function RecommendationPage() {
                 ) : null}
                 {step === 2 ? (
                   <>
-                    <OptionButton label="Natural finish" hint="Clean, understated." selected={answers.finish === 'natural'} onClick={() => choose('finish', 'natural' as FinishAnswer)} />
+                    <OptionButton label="Natural finish" hint="Clean and understated." selected={answers.finish === 'natural'} onClick={() => choose('finish', 'natural' as FinishAnswer)} />
                     <OptionButton label="Dramatic finish" hint="Bold and expressive." selected={answers.finish === 'dramatic'} onClick={() => choose('finish', 'dramatic' as FinishAnswer)} />
                   </>
                 ) : null}
@@ -143,54 +176,74 @@ export default function RecommendationPage() {
               </div>
 
               {step > 0 ? (
-                <button type="button" className="mt-8 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink/55 hover:text-ink" onClick={() => setStep((current: number) => current - 1)}>
-                  <ArrowLeft size={15} /> Previous question
+                <button type="button" className="btn-quiet -ml-4 mt-7" onClick={() => setStep((current: number) => current - 1)}>
+                  <ArrowLeft size={15} aria-hidden="true" /> Previous question
                 </button>
               ) : null}
             </div>
           ) : (
-            <div>
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div ref={resultPanelRef} tabIndex={-1} className="animate-fade-up focus:outline-none">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="eyebrow">Your sample suggestion</p>
-                <button type="button" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink/55 hover:text-ink" onClick={reset}>
-                  <RotateCcw size={14} /> Start over
+                <button type="button" className="btn-quiet -mr-4" onClick={reset}>
+                  <RotateCcw size={14} aria-hidden="true" /> Start over
                 </button>
               </div>
 
-              {loading ? <Spinner label="Matching the sample menu…" className="py-10" /> : null}
-              {error ? <Alert variant="error" title="Menu unavailable">{error}</Alert> : null}
+              {loading ? <Spinner label="Matching the sample menu…" className="py-12" /> : null}
+              {error ? (
+                <div className="mt-6 space-y-4">
+                  <Alert variant="error" title="Menu unavailable">{error}</Alert>
+                  <button type="button" className="btn-outline" onClick={() => void reload()}>Try again</button>
+                </div>
+              ) : null}
+              {!loading && !error && services.length === 0 ? (
+                <EmptyState
+                  className="mt-8"
+                  title="The sample menu is empty."
+                  description="Suggestions will appear once the studio configures its services."
+                  action={<button type="button" className="btn-outline" onClick={() => void reload()}>Try again</button>}
+                />
+              ) : null}
+              {!loading && !error && services.length > 0 && !selectedService ? (
+                <EmptyState className="mt-8" title="No service available." description="The sample menu could not produce a suggestion right now." />
+              ) : null}
 
               {!loading && !error && selectedService ? (
                 <>
-                  <h2 className="text-4xl">{selectedService.name}</h2>
-                  <p className="mt-3 text-sm leading-relaxed text-ink/60">{selectedService.description}</p>
+                  <h2 ref={stageRef} tabIndex={-1} className="mt-7 text-4xl leading-tight focus:outline-none sm:text-5xl">{selectedService.name}</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-ink-muted">{selectedService.description}</p>
                   <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
                     <span className="font-semibold">{formatPrice(selectedService.price_ghs)}</span>
-                    <span className="text-ink/60">{formatDuration(selectedService.duration_minutes)}</span>
-                    <span className="text-ink/60">{selectedService.category}</span>
+                    <span className="text-ink-muted">{formatDuration(selectedService.duration_minutes)}</span>
+                    <span className="text-ink-muted">{selectedService.category}</span>
                   </div>
 
                   {overrideId === null && result ? (
-                    <div className="mt-7 rounded-2xl border border-ink/10 bg-white/60 p-5">
-                      <p className="text-xs font-semibold uppercase tracking-editorial text-ink/50">Why this suggestion</p>
-                      <ul className="mt-3 space-y-2 text-sm text-ink/70">
+                    <div className="mt-7 rounded-3xl border border-ink/10 bg-blush/30 p-5">
+                      <p className="text-[11px] font-semibold uppercase tracking-editorial text-ink-muted">Why this suggestion</p>
+                      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink-soft">
                         {result.reasons.map((reason: string) => (
-                          <li key={reason} className="flex gap-2"><span className="text-accent">●</span>{reason}</li>
+                          <li key={reason} className="flex gap-2">
+                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-deep" aria-hidden="true" />
+                            {reason}
+                          </li>
                         ))}
                       </ul>
                     </div>
                   ) : null}
 
-                  <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                    <Link to={`/book?service=${selectedService.id}`} className="btn-accent">
-                      Book this service <ArrowRight size={16} />
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <Link to={`/book?service=${selectedService.id}`} className="btn-primary">
+                      Book this service <ArrowRight size={16} aria-hidden="true" />
                     </Link>
-                    <a href="#override" className="btn-outline">Choose another</a>
+                    <button type="button" className="btn-outline" onClick={focusOverride}>Choose another</button>
                   </div>
 
-                  <div id="override" className="mt-8 border-t border-ink/10 pt-6">
+                  <div className="mt-9 border-t border-ink/10 pt-6">
                     <label className="field-label" htmlFor="service-override">Override the suggestion</label>
                     <select
+                      ref={overrideRef}
                       id="service-override"
                       className="field"
                       value={overrideId ?? result?.serviceId ?? ''}
@@ -200,7 +253,7 @@ export default function RecommendationPage() {
                         <option key={service.id} value={service.id}>{service.name}</option>
                       ))}
                     </select>
-                    <p className="mt-2 text-xs text-ink/45">Your choice always wins — this is guidance, not a rule.</p>
+                    <p className="mt-2 text-xs text-ink-faint">Your choice always wins — this is guidance, not a rule.</p>
                   </div>
                 </>
               ) : null}
@@ -209,19 +262,32 @@ export default function RecommendationPage() {
         </section>
 
         <aside className="space-y-5">
-          <div className="rounded-3xl border border-ink/10 bg-white/50 p-6">
-            <p className="eyebrow mb-4">Good to know</p>
-            <ul className="space-y-4 text-sm leading-relaxed text-ink/65">
-              <li>No external AI is used. Answers are matched to sample services with simple rules.</li>
-              <li>The suggestion is not professional advice and does not assess lash health.</li>
-              <li>All prices and durations are demonstration values pending Mina's confirmation.</li>
-              <li>You can continue to booking from any suggestion or override.</li>
-            </ul>
+          <div className="overflow-hidden rounded-4xl border border-ink/10 bg-ivory">
+            <div className="aspect-[4/3] bg-sand/25">
+              <ImageWithFallback
+                src="https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=900&q=85"
+                alt="Soft lash styling sample photograph"
+                className="h-full w-full"
+              />
+            </div>
+            <div className="p-6">
+              <p className="eyebrow mb-4">Good to know</p>
+              <ul className="space-y-3 text-sm leading-relaxed text-ink-muted">
+                <li>The suggestion uses simple rules, not external AI.</li>
+                <li>It is not professional advice and does not assess lash health.</li>
+                <li>All prices and durations are demonstration values.</li>
+                <li>You can continue to booking from any suggestion or override.</li>
+              </ul>
+            </div>
           </div>
           <Alert variant="info" title="Demo suggestion only">
-            This experience exists to show a guided choice journey. Mina should confirm any real
-            service recommendation with the client.
+            This experience shows a guided choice journey. Mina should confirm any real service
+            recommendation with the client.
           </Alert>
+          <div className="flex items-center gap-3 text-xs text-ink-faint">
+            <Sparkles size={16} aria-hidden="true" />
+            <p>{result?.disclaimer ?? 'Answer the four questions to see an explanation.'}</p>
+          </div>
         </aside>
       </div>
     </div>

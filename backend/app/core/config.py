@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -30,6 +31,15 @@ class Settings(BaseSettings):
     business_timezone: str = "Africa/Accra"
     max_login_attempts_per_minute: int = 10
     max_booking_requests_per_minute: int = 30
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: object) -> object:
+        """Accept provider URLs that still use the legacy ``postgres://`` scheme."""
+
+        if isinstance(value, str) and value.startswith("postgres://"):
+            return f"postgresql+psycopg://{value[len('postgres://'):]}"
+        return value
 
 
 @lru_cache(maxsize=1)

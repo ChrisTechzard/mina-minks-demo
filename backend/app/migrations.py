@@ -1,24 +1,36 @@
-"""Small additive SQLite migrations for the demo database.
+"""Small additive, dialect-aware migrations for the demo database.
 
 No migration framework is used: the only schema evolution needed so far is
 adding nullable booking-snapshot columns and backfilling legacy rows. The
-operation is idempotent and never drops or rewrites existing tables.
+operation is idempotent, works with SQLite and PostgreSQL, and never drops or
+rewrites existing tables.
 """
 
 from __future__ import annotations
 
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
-# Column definitions must stay in sync with the Booking model. Defaults are
-# needed because SQLite requires a constant default when adding NOT NULL columns.
-_BOOKING_SNAPSHOT_COLUMNS: dict[str, str] = {
+# Column definitions must stay in sync with the Booking model. SQLite requires
+# a constant default; PostgreSQL accepts the equivalent FALSE literal.
+_SQLITE_SNAPSHOT_COLUMNS: dict[str, str] = {
     "service_name": "VARCHAR(120)",
     "service_category": "VARCHAR(60)",
     "price_ghs": "FLOAT",
     "duration_minutes": "INTEGER",
     "snapshot_backfilled": "BOOLEAN NOT NULL DEFAULT 0",
 }
+
+_POSTGRES_SNAPSHOT_COLUMNS: dict[str, str] = {
+    **_SQLITE_SNAPSHOT_COLUMNS,
+    "snapshot_backfilled": "BOOLEAN NOT NULL DEFAULT FALSE",
+}
+
+
+def _column_definitions(engine: Engine) -> dict[str, str]:
+    if engine.dialect.name == "postgresql":
+        return _POSTGRES_SNAPSHOT_COLUMNS
+    return _SQLITE_SNAPSHOT_COLUMNS
 
 
 def ensure_booking_snapshots(engine: Engine) -> list[str]:
@@ -31,11 +43,12 @@ def ensure_booking_snapshots(engine: Engine) -> list[str]:
     """
 
     added: list[str] = []
+    definitions = _column_definitions(engine)
     with engine.begin() as connection:
         existing = {
-            row[1] for row in connection.execute(text("PRAGMA table_info(bookings)"))
+            column["name"] for column in inspect(connection).get_columns("bookings")
         }
-        for name, definition in _BOOKING_SNAPSHOT_COLUMNS.items():
+        for name, definition in definitions.items():
             if name not in existing:
                 connection.execute(
                     text(f"ALTER TABLE bookings ADD COLUMN {name} {definition}")

@@ -4,9 +4,10 @@ interface ImageWithFallbackProps {
   src?: string | null;
   alt: string;
   className?: string;
+  eager?: boolean;
 }
 
-export default function ImageWithFallback({ src, alt, className = '' }: ImageWithFallbackProps) {
+export default function ImageWithFallback({ src, alt, className = '', eager = false }: ImageWithFallbackProps) {
   const [failed, setFailed] = useState<boolean>(false);
 
   useEffect(() => {
@@ -18,7 +19,8 @@ export default function ImageWithFallback({ src, alt, className = '' }: ImageWit
     <img
       src={source}
       alt={alt}
-      loading="lazy"
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
       onError={() => setFailed(true)}
       className={`object-cover ${className}`}
     />
